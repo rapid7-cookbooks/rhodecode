@@ -38,21 +38,21 @@ node.save unless Chef::Config[:solo]
 include_recipe 'python::pip'
 include_recipe 'python::virtualenv'
 
-database_user '['db_user']' do
+database_user "#{node[:rodecode][:db_user]}" do
   connection root_db_connection_info
   password db_passwd
   provider Chef::Provider::Database::Postgresql
   action :create
 end
 
-postgresql_database '['db_name']' do
+postgresql_database "#{node[:rodecode][:db_name]}" do
   connection db_connection_info
   encoding 'utf8'
   owner 'db_user'
   action :create
 end
 
-rabbitmq_user '['mq_user']' do
+rabbitmq_user "#{node[:rabbitmq][:mq_user]}" do
   password "#{node[:rhodecode][:mq_user][:mq_passwd]}"
   action :add
 end
@@ -61,20 +61,30 @@ rabbitmq_vhost "#{node[:rabbitmq][:mq_vhost]}" do
     action :add
 end
 
+rabbitmq_user "#{node[:rabbitmq][:mq_user]}" do
+  vhost "#{node[:rabbitmq][:mq_vhost]}"
+  permissions "\".*\" \".*\" \".*\""
+  action :set_permissions
+end
+
 python_pip 'rhodecode' do
   action :install
 end
 
-python_virtualenv '/var/www/rhodecode-venv' do
+python_virtualenv "#{node[:rhodecode][:venv_path]}" do
   interpreter 'python2.7'
   action :create
 end
 
+# Force dependency on celery version 2.2.5 for compatibility with RhodeCode 1.3.6
 python_pip 'celery' do
+  version '2.2.5'
   action :install
 end
 
+# Force dependecy on kombu version 1.0.7 for comapatibility with celery 2.2.5
 python_pip 'kombu' do
+  version '1.0.7'
   action :install
 end
 
