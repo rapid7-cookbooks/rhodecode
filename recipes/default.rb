@@ -25,8 +25,7 @@
 #
 
 db_passwd                   = encrypted_data_bag_item('prod', 'rhodecode_db_passwd')
-root_db_passwd              = encrypted_data_bag_item('prod', 'rhodecode_db_root_passwd')
-root_db_connection_info     = {:host => ['db_server'], :port => ['db_port'], :username => ['db_user'], :password => node['postgresql']['passwd']}
+db_admin_connection_info    = {:host => ['db_server'], :port => ['db_port'], :username => ['db_admin']}
 db_connection_info          = {:host => ['db_server'], :port => ['db_port'], :username => ['db_user'], :password => node['postgresql']['passwd']}
 
 ::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
@@ -39,7 +38,7 @@ include_recipe 'python::pip'
 include_recipe 'python::virtualenv'
 
 database_user "#{node[:rodecode][:db_user]}" do
-  connection root_db_connection_info
+  connection db_admin_connection_info
   password db_passwd
   provider Chef::Provider::Database::Postgresql
   action :create
