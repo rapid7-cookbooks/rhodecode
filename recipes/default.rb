@@ -24,44 +24,61 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-db_passwd                   = encrypted_data_bag_item('prod', 'rhodecode_db_passwd')
-db_admin_connection_info    = {:host => ['db_server'], :port => ['db_port'], :username => ['db_admin']}
-db_connection_info          = {:host => ['db_server'], :port => ['db_port'], :username => ['db_user'], :password => node['postgresql']['passwd']}
+include_recipe "postgresql::server"
+include_recipe "database"
+include_recipe "rabbitmq"
+include_recipe "python::pip"
+include_recipe "python::virtualenv"
 
-::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
+db_host = node['rhodecode']['db']['host']
+db_port = node['rhodecode']['db']['port']
+db_user = node['rhodecode']['db']['user']
+db_name = node['rhodecode']['db']['name']
+db_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_db_passwd")
+mq_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_mq_passwd")
 
-# randomly generate rabbitmq password
-node.set_unless[:rhodecode][:mq_user][:mq_passwd] = secure_password
-node.save unless Chef::Config[:solo]
+#Chef::Log.info("Decrypted password: " + db_bag["passwd"])
 
-include_recipe 'python::pip'
-include_recipe 'python::virtualenv'
+db_admin_connection_info = {
+  :host     => db_host,
+  :port     => db_port,
+  :username => node['postgresql']['db']['admin'],
+  :password => node['postgresql']['password']['postgres']
+}
+Chef::Log.info("Admin connection info: #{db_admin_connection_info}")
 
-database_user "#{node[:rodecode][:db_user]}" do
+Chef::Log.info("Database User: " + db_user)
+postgresql_database db_name do
   connection db_admin_connection_info
-  password db_passwd
-  provider Chef::Provider::Database::Postgresql
-  action :create
-end
-
-postgresql_database "#{node[:rodecode][:db_name]}" do
-  connection db_connection_info
   encoding 'utf8'
-  owner 'db_user'
   action :create
 end
 
-rabbitmq_user "#{node[:rabbitmq][:mq_user]}" do
-  password "#{node[:rhodecode][:mq_user][:mq_passwd]}"
+# The database cookbook is written in a manner which requires the database to
+# be created prior to creating a user. Morover, the task fails when the option
+# "database_name" is omitted.
+postgresql_database_user db_user do
+  connection db_admin_connection_info
+  password db_bag["passwd"]
+  database_name db_name
+  action [ :create, :grant ]
+end
+
+#Chef::Log.info("RabbitMQ Password: " + "'${mq_bag["passwd"])}'"
+rabbitmq_user node[:rabbitmq][:user] do
+  # Single quote password string to ensure special characters do not cause an
+  # error when creating a new user. The user creation is done via shell_out,
+  # making this essential.
+  password "'#{mq_bag["passwd"]}'"
   action :add
 end
 
-rabbitmq_vhost "#{node[:rabbitmq][:mq_vhost]}" do
+rabbitmq_vhost node[:rabbitmq][:vhost] do
     action :add
 end
 
-rabbitmq_user "#{node[:rabbitmq][:mq_user]}" do
-  vhost "#{node[:rabbitmq][:mq_vhost]}"
+rabbitmq_user node[:rabbitmq][:user] do
+  vhost node[:rabbitmq][:vhost]
   permissions "\".*\" \".*\" \".*\""
   action :set_permissions
 end
@@ -70,8 +87,9 @@ python_pip 'rhodecode' do
   action :install
 end
 
-python_virtualenv "#{node[:rhodecode][:venv_path]}" do
+python_virtualenv node[:python][:virtualenv][:path] do
   interpreter 'python2.7'
+  options '--no-site-packages'
   action :create
 end
 
@@ -86,5 +104,3 @@ python_pip 'kombu' do
   version '1.0.7'
   action :install
 end
-
-
