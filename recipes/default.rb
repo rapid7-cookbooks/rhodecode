@@ -37,7 +37,10 @@ db_name = node['rhodecode']['db']['name']
 db_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_db_passwd")
 mq_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_mq_passwd")
 
-#Chef::Log.info("Decrypted password: " + db_bag["passwd"])
+# This is dangerous as it will print the decrypted value to the screen and log
+# it to the disk. However, it is useful for troubleshooting encrypted data bags.
+# Do not uncomment this unless you fully understand the security implications.
+#Chef::Log.debug("Decrypted password: " + db_bag["passwd"])
 
 db_admin_connection_info = {
   :host     => db_host,
@@ -45,9 +48,12 @@ db_admin_connection_info = {
   :username => node['postgresql']['db']['admin'],
   :password => node['postgresql']['password']['postgres']
 }
-Chef::Log.info("Admin connection info: #{db_admin_connection_info}")
+# This is dangerous as it will print the decrypted value to the screen and log
+# it to the disk. However, it is useful for troubleshooting encrypted data bags.
+# Do not uncomment this unless you fully understand the security implications.
+#Chef::Log.debug("Admin connection info: #{db_admin_connection_info}")
 
-Chef::Log.info("Database User: " + db_user)
+Chef::Log.debug("Database User: " + db_user)
 postgresql_database db_name do
   connection db_admin_connection_info
   encoding 'utf8'
@@ -60,10 +66,15 @@ end
 postgresql_database_user db_user do
   connection db_admin_connection_info
   password db_bag["passwd"]
-  database_name db_name
-  action [ :create, :grant ]
+#  database_name db_name
+#  action [ :create, :grant ]
+  action [ :create ]
 end
 
+
+# This is dangerous as it will print the decrypted value to the screen and log
+# it to the disk. However, it is useful for troubleshooting encrypted data bags.
+# Do not uncomment this unless you fully understand the security implications.
 #Chef::Log.info("RabbitMQ Password: " + "'${mq_bag["passwd"])}'"
 rabbitmq_user node[:rabbitmq][:user] do
   # Single quote password string to ensure special characters do not cause an
@@ -83,15 +94,59 @@ rabbitmq_user node[:rabbitmq][:user] do
   action :set_permissions
 end
 
-python_pip 'rhodecode' do
+directory "/var/lib/rhodecode" do
+  owner "root"
+  group "root"
+  mode "0750"
+  action :create
+end
+
+# Install the UUID gem to generate a random UUID while processing the deployment.ini.erb.
+gem_package "uuid" do
   action :install
 end
 
+template "/var/lib/rhodecode/production.ini" do
+  source "deployment.ini.erb"
+  variables(
+    { :db_data_bag => db_bag }
+  )
+end
+
+python_pip 'rhodecode' do
+  version '1.3.6'
+  action :install
+end
+
+# Install psycopg2 for postgresql support in RhodeCode.
+python_pip 'psycopg2' do
+  action :install
+end
+
+# Specify --no-site-packages per RhodeCode documentation.
 python_virtualenv node[:python][:virtualenv][:path] do
   interpreter 'python2.7'
-  options '--no-site-packages'
+  options "--no-site-packages"
   action :create
 end
+
+template "/etc/cron.d/update-rhodecode-index" do
+  source "update-rhodecode-index.erb"
+end
+
+# *THIS WORKAROUND IS POTENTIALLY DESTRUCTIVE*
+# Workaround a bug in non-interactive setup-rhodecode in which the script always
+# prompts to destroy the current db. This has been resolved for the upcoming 1.4
+# release.
+# https://bitbucket.org/marcinkuzminski/rhodecode/issue/507
+# **  BEGIN WORKAROUND **
+execute "paster" do
+  command "yes | paster setup-rhodecode /var/lib/rhodecode/production.ini -q --user=#{node['rhodecode']['admin']['user']} --password='#{node['rhodecode']['admin']['passwd']}' --email=#{node['rhodecode']['admin']['email']} --repos=#{node['rhodecode']['repo']['path']} && touch /var/lib/rhodecode/configured_by_chef"
+  #  Do not re-run the setup-rhodecode PasteScript if it has successfully completed.
+  creates "/var/lib/rhodecode/configured_by_chef"
+  action :run
+end
+## ** END WORKAROUND **
 
 # Force dependency on celery version 2.2.5 for compatibility with RhodeCode 1.3.6
 python_pip 'celery' do
