@@ -1,3 +1,6 @@
+#
+# **** This file is managed by chef. ****
+#
 ################################################################################
 ################################################################################
 # RhodeCode - Pylons environment configuration                                 #
@@ -180,8 +183,8 @@ beaker.session.type = cookie
 #beaker.session.type = file
 beaker.session.key = rhodecode
 # secure cookie requires AES python libraries
-#beaker.session.encrypt_key = ${app_instance_secret}
-#beaker.session.validate_key = ${app_instance_secret}
+beaker.session.encrypt_key = <%= node['rhodecode']['beaker']['key'] %>
+beaker.session.validate_key = <%= node['rhodecode']['beaker']['key'] %>
 beaker.session.timeout = 36000
 beaker.session.httponly = true
 

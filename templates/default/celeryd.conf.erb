@@ -1,0 +1,29 @@
+#
+# **** This file is managed by chef. ****
+#
+# celeryd - run the celeryd daemon as an upstart job for rhodecode
+# Change variables/paths as necessary and place file /etc/init/celeryd.conf
+# start/stop/restart as normal upstart job (ie: $ start celeryd)
+
+description "Celery for RhodeCode Mercurial Server"
+author      "Matt Zuba <matt.zuba@goodwillaz.org"
+author      "Edward Ciramella <edward_ciramella@rapid7.com>"
+
+start on rhodecode START=TRUE
+stop on rhodecode STOP=TRUE
+respawn
+umask 0022
+env PIDFILE=/var/run/rhodecode/celeryd.pid
+env APPINI=/var/lib/rhodecode/production.ini
+env LOGFILE=/var/log/rhodecode/celery.log
+env USER=<%= node['rhodecode']['system']['user'] %>
+env GROUP=<%= node['rhodecode']['system']['group'] %>
+
+script
+    COMMAND="/usr/local/bin/paster celeryd $APPINI --pidfile=$PIDFILE --logfile $LOGFILE"
+    exec sudo -u $USER $COMMAND
+end script
+
+post-stop script
+    rm -f $PIDFILE
+end script

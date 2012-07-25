@@ -1,3 +1,6 @@
+#
+# **** This file is managed by chef. ****
+#
 <% if node['rhodecode']['index']['interval'] > 0 -%>
 */<%= node['rhodecode']['index']['interval'] %> * * * * /usr/local/bin/paster make-index /var/lib/rhodecode/production.ini
 <% end -%>

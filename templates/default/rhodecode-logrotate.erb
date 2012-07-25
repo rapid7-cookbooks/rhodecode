@@ -1,0 +1,7 @@
+/var/log/rhodecode/rhodecode.log {
+        daily
+        missingok
+        rotate 4
+        create 0640 <%= node['rhodecode']['system']['user'] %> <%= node['rhodecode']['system']['group'] %>
+        copytruncate
+}

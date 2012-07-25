@@ -1,7 +1,10 @@
+::Chef::Node.send(:include, Opscode::OpenSSL::Password)
 default['rhodecode']['admin']['user']       = 'admin'
-default['rhodecode']['admin']['passwd']     = 'changeme'
+set.unless['rhodecode']['admin']['passwd']  = secure_password
 default['rhodecode']['admin']['email']      = 'admin@localhost'
 default['rhodecode']['repo']['path']        = '/srv/repos'
+default['rhodecode']['system']['user']      = 'rhodecode'
+default['rhodecode']['system']['group']     = 'rhodecode'
 default['rhodecode']['db']['host']          = '127.0.0.1'
 default['rhodecode']['db']['port']          = 5432
 default['rhodecode']['db']['user']          = 'rhodecode'
@@ -24,12 +27,12 @@ default['rhodecode']['issue']['server']     = 'https://myissueserver.com/{repo}/
 default['rhodecode']['issue']['prefix']     = '#'
 default['rhodecode']['authError']           = 418
 default['rhodecode']['index']['interval']   = 30
+set.unless['rhodecode']['beaker']['key']    = secure_password
 default['celery']['host']                   = 'localhost'
 default['celery']['vhost']                  = '/rhodecode'
 default['celery']['port']                   = 5672
-#default['celery']['user']                   = 'rabbitmq'
 default['celery']['user']                   = 'rhodecode'
-default['celery']['passwd']                 = 'changeme'
+set.unless['celery']['passwd']              = secure_password
 default['postgresql']['db']['admin']        = 'postgres'
 default['python']['virtualenv']['path']     = '/var/www/rhodecode-venv'
 default['rabbitmq']['user']                 = 'rhodecode'
