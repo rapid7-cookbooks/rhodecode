@@ -73,6 +73,7 @@ default_encoding = utf8
 ## path - usually repo_name
 
 #clone_uri = {scheme}://{user}{pass}{netloc}{path}
+clone_uri = {scheme}://{user}{pass}<%=node['fqdn']['name']%>{path}
 
 ## issue tracking mapping for commits messages
 ## comment out issue_pat, issue_server, issue_prefix to enable
@@ -174,7 +175,7 @@ beaker.cache.sql_cache_long.key_length = 256
 ## db session example
 
 beaker.session.type = ext:database
-beaker.session.sa.url = postgresql://postgres:<%= node['rhodecode']['db']['user'] %>:<%= @db_data_bag["passwd"] %>@<%= node['rhodecode']['db']['host'] %>/<%= node['rhodecode']['db']['name'] %>
+beaker.session.sa.url = postgresql://postgres:<%= node['rhodecode']['db']['user'] %>:<%= node['rhodecode']['db']['passwd'] %>@<%= node['rhodecode']['db']['host'] %>/<%= node['rhodecode']['db']['name'] %>
 beaker.session.table_name = db_session 
 
 ## encrypted cookie session, good for many instances
@@ -220,7 +221,7 @@ logview.pylons.util = #eee
 #sqlalchemy.db1.url = sqlite:///%(here)s/rhodecode.db
  
 # POSTGRESQL
-sqlalchemy.db1.url = postgresql://<%= node['rhodecode']['db']['user'] %>:<%= @db_data_bag["passwd"] %>@<%= node['rhodecode']['db']['host'] %>/<%= node['rhodecode']['db']['name'] %>
+sqlalchemy.db1.url = postgresql://<%= node['rhodecode']['db']['user'] %>:<%= node['rhodecode']['db']['passwd'] %>@<%= node['rhodecode']['db']['host'] %>/<%= node['rhodecode']['db']['name'] %>
 
 # MySQL
 # sqlalchemy.db1.url = mysql://user:pass@localhost/rhodecode

@@ -27,20 +27,17 @@
 include_recipe "postgresql::server"
 include_recipe "database"
 include_recipe "rabbitmq"
+include_recipe "git"
+include_recipe "mercurial"
 include_recipe "python::pip"
 include_recipe "python::virtualenv"
-include_recipe "openssl"
-db_host = node['rhodecode']['db']['host']
-db_port = node['rhodecode']['db']['port']
-db_user = node['rhodecode']['db']['user']
-db_name = node['rhodecode']['db']['name']
-db_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_db_passwd")
-mq_bag  = Chef::EncryptedDataBagItem.load("prod", "rhodecode_mq_passwd")
+include_recipe "firewall"
 
-# This is dangerous as it will print the decrypted value to the screen and log
-# it to the disk. However, it is useful for troubleshooting encrypted data bags.
-# Do not uncomment this unless you fully understand the security implications.
-#Chef::Log.debug("Decrypted password: " + db_bag["passwd"])
+db_host   = node['rhodecode']['db']['host']
+db_port   = node['rhodecode']['db']['port']
+db_user   = node['rhodecode']['db']['user']
+db_name   = node['rhodecode']['db']['name']
+db_passwd = node['rhodecode']['db']['passwd']
 
 db_admin_connection_info = {
   :host     => db_host,
@@ -48,12 +45,10 @@ db_admin_connection_info = {
   :username => node['postgresql']['db']['admin'],
   :password => node['postgresql']['password']['postgres']
 }
-# This is dangerous as it will print the decrypted value to the screen and log
-# it to the disk. However, it is useful for troubleshooting encrypted data bags.
-# Do not uncomment this unless you fully understand the security implications.
-#Chef::Log.debug("Admin connection info: #{db_admin_connection_info}")
 
+Chef::Log.debug("Admin connection info: #{db_admin_connection_info}")
 Chef::Log.debug("Database User: " + db_user)
+
 postgresql_database db_name do
   connection db_admin_connection_info
   encoding 'utf8'
@@ -61,11 +56,11 @@ postgresql_database db_name do
 end
 
 # The database cookbook is written in a manner which requires the database to
-# be created prior to creating a user. Morover, the task fails when the option
+# be created prior to creating a user. Moreover, the task fails when the option
 # "database_name" is omitted.
 postgresql_database_user db_user do
   connection db_admin_connection_info
-  password db_bag["passwd"]
+  password db_passwd
   action [ :create ]
 end
 
@@ -83,6 +78,8 @@ directory "/var/lib/rhodecode" do
   action :create
 end
 
+# Create rhodecode log directory. The log displays the database password in
+# clear text which is why the permissions for the directory are set to 0750.
 directory "/var/log/rhodecode" do
   owner node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
@@ -98,7 +95,7 @@ directory "/var/www" do
 end
 
 # Create the virtualenv directory with the correct permissions.
-directory node['python']['virtualenv']['path'] do
+directory node['rhodecode']['virtualenv']['path'] do
   owner node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
   mode "0750"
@@ -118,14 +115,18 @@ gem_package "uuid" do
   action :install
 end
 
+# Install python headers to ensure Mercurial can install correctly in the virtualenv.
+package "python-dev" do
+  action :install
+end
+
 template "/var/lib/rhodecode/production.ini" do
   source "deployment.ini.erb"
   owner node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
   mode 0640
-  variables(
-    { :db_data_bag => db_bag }
-  )
+  backup 1
+  action :create_if_missing
 end
 
 python_pip 'rhodecode' do
@@ -155,7 +156,7 @@ python_pip 'python-ldap' do
 end
 
 # Specify --no-site-packages per RhodeCode documentation.
-python_virtualenv node[:python][:virtualenv][:path] do
+python_virtualenv node['rhodecode']['virtualenv']['path'] do
   owner node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
   interpreter 'python2.7'
@@ -167,25 +168,24 @@ template "/etc/cron.d/update-rhodecode-index" do
   source "update-rhodecode-index.erb"
 end
 
-# This is dangerous as it will print the decrypted value to the screen and log
-# it to the disk. However, it is useful for troubleshooting encrypted data bags.
-# Do not uncomment this unless you fully understand the security implications.
-#Chef::Log.info("RabbitMQ Password: " + "'${mq_bag["passwd"])}'"
-rabbitmq_user node[:rabbitmq][:user] do
+rabbitmq_user "guest" do
+  action :delete
+end
+
+rabbitmq_user node['rabbitmq']['user'] do
   # Single quote password string to ensure special characters do not cause an
   # error when creating a new user. The user creation is done via shell_out,
   # making this essential.
-#  password "'#{mq_bag["passwd"]}'"
   password node['celery']['passwd']
   action :add
 end
 
-rabbitmq_vhost node[:rabbitmq][:vhost] do
+rabbitmq_vhost node['rabbitmq']['vhost'] do
     action :add
 end
 
-rabbitmq_user node[:rabbitmq][:user] do
-  vhost node[:rabbitmq][:vhost]
+rabbitmq_user node['rabbitmq']['user'] do
+  vhost node['rabbitmq']['vhost']
   permissions "\".*\" \".*\" \".*\""
   action :set_permissions
 end
@@ -200,11 +200,19 @@ execute "paster" do
   user node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
   command "yes | paster setup-rhodecode /var/lib/rhodecode/production.ini -q --user=#{node['rhodecode']['admin']['user']} --password='#{node['rhodecode']['admin']['passwd']}' --email=#{node['rhodecode']['admin']['email']} --repos=#{node['rhodecode']['repo']['path']} && touch /var/lib/rhodecode/configured_by_chef"
-  #  Do not re-run the setup-rhodecode PasteScript if it has successfully completed.
+  # Do not re-run the setup-rhodecode PasteScript if it has successfully completed.
   creates "/var/lib/rhodecode/configured_by_chef"
   action :run
 end
 ## ** END WORKAROUND **
+
+execute "paster" do
+  user node['rhodecode']['system']['user']
+  group node['rhodecode']['system']['group']
+  command "paster make-rcext /var/lib/rhodecode/production.ini"
+  creates "/var/lib/rhodecode/rcextensions/__init__.py"
+  action :run
+end
 
 # Force dependency on celery version 2.2.5 for compatibility with RhodeCode 1.3.6
 python_pip 'celery' do
@@ -248,3 +256,11 @@ service "celeryd" do
   action [ :enable, :start ]
 end
 
+# Initialize an index so the future executions from the crontab work properly.
+execute "make-index" do
+  user node['rhodecode']['system']['user']
+  group node['rhodecode']['system']['group']
+  command "paster make-index /var/lib/rhodecode/production.ini -f && touch /var/lib/rhodecode/.index-initialized-by-chef"
+  creates "/var/lib/rhodecode/.index-initialized-by-chef"
+  action :run
+end
