@@ -54,8 +54,7 @@ static_files = true
 lang = en
 cache_dir = %(here)s/data
 index_dir = %(here)s/data/index
-<% require 'uuid' -%>
-app_instance_uuid = {<%= UUID.generate %>}
+app_instance_uuid = {<%= node['rhodecode']['app_instance_uuid'] %>}
 cut_off_limit = 256000
 force_https = <%= node['rhodecode']['force']['https'] %>
 commit_parse_limit = 50

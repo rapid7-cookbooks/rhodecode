@@ -29,6 +29,7 @@ default['rhodecode']['issue']['server']         = 'https://myissueserver.com/{re
 default['rhodecode']['issue']['prefix']         = '#'
 default['rhodecode']['authError']               = 418
 default['rhodecode']['index']['interval']       = 30
+default_unless['rhodecode']['app_instance_uuid']= SecureRandom.uuid.to_s
 default_unless['rhodecode']['beaker']['key']    = SecureRandom.base64(128).gsub(/\W/, "")
 default['postgresql']['db']['admin']            = 'postgres'
 default['celery']['host']                       = 'localhost'

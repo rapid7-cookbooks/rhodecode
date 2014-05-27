@@ -23,11 +23,6 @@ directory node['rhodecode']['repo']['path'] do
   action :create
 end
 
-# Install the UUID gem to generate a random UUID while processing the deployment.ini.erb.
-chef_gem 'uuid' do
-  action :install
-end
-
 template '/var/lib/rhodecode/production.ini' do
   source 'deployment.ini.erb'
   owner node['rhodecode']['system']['user']
