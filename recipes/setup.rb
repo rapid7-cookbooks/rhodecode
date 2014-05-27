@@ -23,6 +23,20 @@ directory node['rhodecode']['repo']['path'] do
   action :create
 end
 
+# Install the UUID gem to generate a random UUID while processing the deployment.ini.erb.
+chef_gem 'uuid' do
+  action :install
+end
+
+template '/var/lib/rhodecode/production.ini' do
+  source 'deployment.ini.erb'
+  owner node['rhodecode']['system']['user']
+  group node['rhodecode']['system']['group']
+  mode 0640
+  backup 1
+  action :create_if_missing
+end
+
 # *THIS WORKAROUND IS POTENTIALLY DESTRUCTIVE*
 # Workaround a bug in non-interactive setup-rhodecode in which the script always
 # prompts to destroy the current db. This has been resolved for the upcoming 1.4

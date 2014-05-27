@@ -32,6 +32,7 @@ include_recipe 'rhodecode::python'
 include_recipe 'rhodecode::celery'
 include_recipe 'rhodecode::rabbitmq'
 include_recipe 'rhodecode::setup'
+include_recipe 'rhodecode::system_config'
 
 =begin
 service "rhodecode" do
