@@ -1,0 +1,21 @@
+---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_solo
+
+platforms:
+  - name: ubuntu-12.04
+
+suites:
+  - name: default
+    run_list:
+      - recipe[rhodecode::default]
+    attributes:
+      rhodecode:
+        admin:
+          password: 'kitchen'
+      postgresql:
+        password:
+          postgres: 'kitchen'
