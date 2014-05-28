@@ -25,12 +25,14 @@ python_virtualenv node['rhodecode']['virtualenv']['path'] do
   action :create
 end
 
-# Install 
+# Install mercurial - 2.6.3 is a hard-coded dependency of
+# RhodeCode 1.7.2
 python_pip 'mercurial' do
+  version '2.6.3'
   virtualenv node['rhodecode']['virtualenv']['path']
   user node['rhodecode']['system']['user']
   group node['rhodecode']['system']['group']
-  action [:install, :upgrade]
+  action :install
 end
 
 # Install psycopg2 for postgresql support in RhodeCode.
