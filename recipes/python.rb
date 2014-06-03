@@ -76,6 +76,13 @@ python_pip 'kombu' do
   action :install
 end
 
+python_pip 'pycrypto' do
+  virtualenv node['rhodecode']['virtualenv']['path']
+  user node['rhodecode']['system']['user']
+  group node['rhodecode']['system']['group']
+  action :install
+end
+
 # The version of dulwich which RhodeCode (=< 1.7.2) depends on is no longer
 # available in pypi. To work around this issue, we need to download the
 # required version and install it manually into the virtual environment.

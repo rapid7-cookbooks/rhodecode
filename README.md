@@ -19,3 +19,4 @@ todo
 * Add support for RHEL and other Linux based platforms.
 * Add support for Windows servers.
 * Fix MIME encoding in Paster.
+* Make nginx ssl keys optional/parameterized for possible cookbook publish
