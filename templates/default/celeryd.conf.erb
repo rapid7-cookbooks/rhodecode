@@ -14,13 +14,13 @@ stop on rhodecode STOP=TRUE
 respawn
 umask 0022
 env PIDFILE=/var/run/rhodecode/celeryd.pid
-env APPINI=/var/lib/rhodecode/production.ini
+env APPINI=/var/lib/rhodecode/production1.ini
 env LOGFILE=/var/log/rhodecode/celery.log
 env USER=<%= node['rhodecode']['system']['user'] %>
 env GROUP=<%= node['rhodecode']['system']['group'] %>
 
 script
-    COMMAND="/usr/local/bin/paster celeryd $APPINI --pidfile=$PIDFILE --logfile $LOGFILE"
+    COMMAND="/var/lib/rhodecode-venv/bin/paster celeryd $APPINI --pidfile=$PIDFILE --logfile $LOGFILE"
     exec sudo -u $USER $COMMAND
 end script
 
