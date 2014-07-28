@@ -34,11 +34,3 @@ include_recipe 'rhodecode::rabbitmq'
 include_recipe 'rhodecode::nginx'
 include_recipe 'rhodecode::setup'
 include_recipe 'rhodecode::system_config'
-
-=begin
-service "rhodecode" do
-  supports :restart => true
-  action [ :enable, :start ]
-end
-=end
-
