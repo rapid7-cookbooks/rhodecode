@@ -1,82 +1,25 @@
-#!/bin/sh -e
-#
-# **** This file is managed by chef. ****
-#
-### BEGIN INIT INFO
-# Provides:          rhodecode
-# Required-Start:    $all
-# Required-Stop:     $all
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: starts instance of rhodecode
-# Description:       starts instance of rhodecode using start-stop-daemon
-### END INIT INFO
+#!/bin/bash
+instance_ids="<%= @instance_count %>"
+CURRENT_PATH=`pwd`
+case $1 in
+"stop")
+        for i in $instance_ids
+        do
+            echo "Shutting down RhodeCode ${i}..."
+            source /var/lib/rhodecode-venv/bin/activate
+            paster serve --stop-daemon --pid-file=/tmp/rhodecode${i}.pid
+        done
+        ;;
+*)
 
-CONF_NAME="/var/lib/rhodecode/production.ini"
-
-PID_PATH="/var/run/rhodecode/rhodecode.pid"
-LOG_PATH="/var/log/rhodecode/rhodecode.log"
-RUN_AS="<%= node['rhodecode']['system']['user'] %>"
-DAEMON="/usr/local/bin/paster"
-
-DAEMON_OPTS="serve --daemon \
-  --user=$RUN_AS \
-  --group=$RUN_AS \
-  --pid-file=$PID_PATH \
-  --log-file=$LOG_PATH $CONF_NAME"
-
-
-start() {
-  echo "Starting $APP_NAME"
-  PYTHON_EGG_CACHE="/var/lib/rhodecode/.egg-cache"
-  if [ ! -d "$(dirname $PID_PATH)" ]; then
-     mkdir -p "$(dirname $PID_PATH)"
-     chown $RUN_AS:$RUN_AS "$(dirname $PID_PATH)"
-  fi
-
-  start-stop-daemon \
-      --start --quiet \
-      --pidfile $PID_PATH \
-      --user $RUN_AS \
-      --exec $DAEMON -- $DAEMON_OPTS
-
-      # Make the rhodecode init.d script emit the rhodecode signal AND
-      # pass along a property. Just needed a way to differentiate between
-      # start and stop signals.  We could do START=TRUE/FALSE, but I just
-      # think this is more readable at a glance.
-      initctl emit rhodecode START=TRUE
-}
-
-stop() {
-  echo "Stopping $APP_NAME"
-  start-stop-daemon \
-      --stop --quiet \
-      --pidfile $PID_PATH || echo "$APP_NAME - Not running!"
-
-  if [ -f $PID_PATH ]; then
-    rm $PID_PATH
-  fi
-
-  # Make the rhodecode init.d script emit the rhodecode signal AND pass along a property.
-  initctl emit rhodecode STOP=TRUE
-}
-
-case "$1" in
-  start)
-    start
+    for i in $instance_ids
+    do
+        # When brought up by init.d or anything else without argument.
+        echo "Starting up RhodeCode ${i}..."
+        source /var/lib/rhodecode-venv/bin/activate
+        cd /var/lib/rhodecode-venv
+        paster serve /var/lib/rhodecode/production${i}.ini --daemon --user=rhodecode --pid-file=/tmp/rhodecode${i}.pid
+    done
     ;;
-  stop)
-    stop
-    ;;
-  restart)
-    echo "Restarting $APP_NAME"
-    ### stop ###
-    stop
-    wait
-    ### start ###
-    start
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart}"
-    exit 1
 esac
+cd $CURRENT_PATH
