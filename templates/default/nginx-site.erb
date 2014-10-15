@@ -22,8 +22,8 @@ server {
   ssl                  on;
   ssl_certificate      <%= node['rhodecode']['nginx']['ssl_cert_path'] %>;
   ssl_certificate_key  <%= node['rhodecode']['nginx']['ssl_cert_key_path'] %>;
-  ssl_protocols        SSLv3 TLSv1 TLSv1.1 TLSv1.2;
-  ssl_ciphers          HIGH:!aNULL:!MD5;
+  ssl_protocols        TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers          EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
   client_max_body_size <%= node['rhodecode']['nginx']['client_max_body_size'] %>;
   client_body_timeout  <%= node['rhodecode']['nginx']['client_body_timeout'] %>;
 
