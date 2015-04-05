@@ -1,4 +1,5 @@
 require "securerandom"
+default['rhodecode']['hostname']                = node['fqdn']
 default['rhodecode']['admin']['user']           = 'admin'
 default_unless['rhodecode']['admin']['passwd']  = SecureRandom.base64(128).gsub(/\W/, "")
 default['rhodecode']['admin']['email']          = 'admin@localhost'
@@ -40,8 +41,8 @@ default['celery']['user']                       = 'rhodecode'
 default_unless['celery']['passwd']              = SecureRandom.base64(128).gsub(/\W/, "")
 default['rabbitmq']['user']                     = 'rhodecode'
 default['rabbitmq']['vhost']                    = '/rhodecode'
-default['rhodecode']['nginx']['host']           =
+default['rhodecode']['nginx']['host']           = node['rhodecode']['hostname']
 default['rhodecode']['nginx']['ssl_cert_data_bag']      = 'rhodecode'
 default['rhodecode']['nginx']['ssl_cert_data_bag_item'] = 'ssl'
-default['rhodecode']['nginx']['client_max_body_size'] = '100M'
-default['rhodecode']['nginx']['client_body_timeout']  = '600'
+default['rhodecode']['nginx']['client_max_body_size']   = '100M'
+default['rhodecode']['nginx']['client_body_timeout']    = '600'
