@@ -1,5 +1,3 @@
-source "https://supermarket.getchef.com"
+source 'https://supermarket.chef.io'
 
 metadata
-
-cookbook 'postgresql', :github => 'rapid7-cookbooks/postgresql'

@@ -1,7 +1,6 @@
 
 include_recipe 'postgresql::server'
-include_recipe 'postgresql::ruby'
-include_recipe 'database'
+include_recipe 'database::postgresql'
 
 db_host   = node['rhodecode']['db']['host']
 db_port   = node['rhodecode']['db']['port']
