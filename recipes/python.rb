@@ -88,7 +88,7 @@ end
 # required version and install it manually into the virtual environment.
 remote_file ::File.join(Chef::Config[:file_cache_path], 'dulwich-0.8.7.tar.gz') do
   source 'https://github.com/jelmer/dulwich/archive/dulwich-0.8.7.tar.gz'
-  checksum '4e85698cb04fd69e56004e952a2f9a1f5756cf65e06174dbd55635d02cdaab66'
+  checksum '794e8b813da9cca8612f4041aa2b363e527def184dd731d746e07af69f0df96f'
 end
 
 execute 'install_old_dulwich' do
